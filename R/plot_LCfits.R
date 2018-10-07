@@ -16,7 +16,7 @@
 #' @return figure with length composition data and model fits if Report or LBSPR are specified
 #' 
 #' @export
-plot_LCfits <- function(LF_df=NULL, binwidth=1, Inputs=NULL, Report=NULL, LBSPR=NULL, plot_fit=TRUE, n=FALSE, time_labels=NULL){
+plot_LCfits <- function(LF_df=NULL, binwidth=1, Inputs=NULL, Report=NULL, LBSPR=NULL, plot_fit=TRUE, n=FALSE, time_labels=NULL, year_labels=NULL){
 	# dev.new()
 
 	if(all(is.null(Inputs))){
@@ -71,6 +71,7 @@ plot_LCfits <- function(LF_df=NULL, binwidth=1, Inputs=NULL, Report=NULL, LBSPR=
 
 
 	if(all(is.null(Inputs))) Tyrs <- all_lc_years
+	# if(all(is.null(Inputs))==FALSE) Tyrs <- 1:Inputs$Data$n_t
 	if(all(is.null(Inputs))==FALSE) Tyrs <- 1:Inputs$Data$n_t
 
 	if(all(is.null(Report))==FALSE){
@@ -136,6 +137,20 @@ if(all(is.null(Report))==FALSE){
 		pred_df2_mod2 <- pred_df_mod2 %>% mutate("Type"="Predicted") %>% mutate("Model"="LBSPR") %>% mutate("Fleet"=factor(1))
 		df_all <- dplyr::bind_rows(df_all, pred_df2_mod2)
 	}
+  # B.Stock modify facet labels to be "Year (n = xxx)"
+  if(!is.null(year_labels)){
+  	if(n){ # year AND sample size label
+  		n_labels <- apply(LF_array[,,1],1,sum)
+  		levels(df_all$Year) <- paste0(year_labels, " (n = ", n_labels,")")
+  	} else { # year label only
+  		levels(df_all$Year) <- year_labels
+  	}
+  } else {
+  	if(n){ # sample size label only
+  		n_labels <- apply(LF_array[,,1],1,sum)
+  		levels(df_all$Year) <- paste0("n = ", n_labels,)
+	}
+  }
 
   if(length(unique(df_all$Model))>1){
 	p <- ggplot(df_all) + 

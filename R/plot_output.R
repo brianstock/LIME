@@ -10,7 +10,7 @@
 #' @param lh life history list
 #' @param true_years vector of true years (in case all_years and lc_years are 1:20 instead of 1998:2017)
 #' @param True default=NULL, possible to specify true list from generated data if simulation
-#' @param plot options for plotting include "Fish"=fishing mortality, "Rec"=recruitment (LIME only), "SPR"=spawning potential ratio, "ML"=mean length (including observed values; LIME only), "SB"=spawning biomass (LIME only), "Selex"=selectivity-at-length
+#' @param plot options for plotting include "Fish"=fishing mortality, "Rec"=recruitment (LIME only), "SPR"=spawning potential ratio, "ML"=mean length (including observed values; LIME only), "SB"=spawning biomass (LIME only), "Selex"=selectivity-at-length, "Ind"=Index
 #' @param set_ylim list to set ylim for each of the 'plot' arguments
 #' @importFrom graphics points polygon segments
 #' @importFrom grDevices rgb
@@ -18,7 +18,7 @@
 #' @return figure with length composition data and model fits if Report or LBSPR are specified
 #' 
 #' @export
-plot_output <- function(Inputs=NULL, Report=NULL, Sdreport=NULL, LBSPR=NULL, lh, true_years=NULL, True=NULL, plot=c("Fish","Rec","SPR","ML","SB","Selex"), set_ylim=list("SPR" = c(0,1)), legend=FALSE){
+plot_output <- function(Inputs=NULL, Report=NULL, Sdreport=NULL, LBSPR=NULL, lh, true_years=NULL, True=NULL, plot=c("Fish","Rec","Ind","ML","SB","Selex"), set_ylim=list("SPR" = c(0,1)), legend=FALSE){
 
     nf <- Inputs$Data$n_f
     ns <- Inputs$Data$n_s
@@ -207,10 +207,10 @@ if("SPR" %in% plot){
 
 if("ML" %in% plot){
 
-  if("ML" %in% names(set_ylim) == FALSE) ylim <- c(0, max(Report$ML_ft_hat)*1.5)
-  if("ML" %in% names(set_ylim)) ylim <- set_ylim[["ML"]]
+  # if("ML" %in% names(set_ylim) == FALSE) ylim <- c(0, max(Report$ML_ft_hat)*1.5)
+  # if("ML" %in% names(set_ylim)) ylim <- set_ylim[["ML"]]
   
-  plot(x=1,y=1, type="n", xaxt="n", ylab="Mean length", xlab="Year", xaxs="i", yaxs="i", cex.axis=2, cex.lab=2, xlim=c(min(seq_along(xY)), max(seq_along(xY))), ylim=ylim)
+  # plot(x=1,y=1, type="n", xaxt="n", ylab="Mean length", xlab="Year", xaxs="i", yaxs="i", cex.axis=2, cex.lab=2, xlim=c(min(seq_along(xY)), max(seq_along(xY))), ylim=ylim)
 
   if(all(is.na(Sdreport))==FALSE){
     sd <- summary(Sdreport)[which(rownames(summary(Sdreport))=="ML_ft_hat"),]
@@ -226,7 +226,13 @@ if("ML" %in% plot){
         })
         return(ml[seq(1,by=ns,length.out=Inputs$Data$n_y)])
       })
-      polygon(y=read_sdreport(sdf, log=FALSE), x=c(which(is.na(sdf[,2])==FALSE), rev(which(is.na(sdf[,2])==FALSE))), col=paste0(cols[f],"40"), border=NA)
+      MLy <- read_sdreport(sdf, log=FALSE)
+      if("ML" %in% names(set_ylim) == FALSE) ylim <- c(min(MLy,na.rm=T)*0.98, max(MLy,na.rm=T)*1.02)
+      if("ML" %in% names(set_ylim)) ylim <- set_ylim[["ML"]]
+      
+      plot(x=1,y=1, type="n", xaxt="n", ylab="Mean length", xlab="Year", xaxs="i", yaxs="i", cex.axis=2, cex.lab=2, xlim=c(min(seq_along(xY)), max(seq_along(xY))), ylim=ylim)
+
+      polygon(y=MLy, x=c(which(is.na(sdf[,2])==FALSE), rev(which(is.na(sdf[,2])==FALSE))), col=paste0(cols[f],"40"), border=NA)
       lines(x=seq_along(xY), y=sdf[,1], lwd=2, col=cols[f])
       points(x=which(is.na(ML_obs[[f]])==FALSE), y=sdf[which(is.na(ML_obs[[f]])==FALSE),1], pch=19, col=cols[f], xpd=NA, cex=2)
       lines(x=seq_along(xY), y=ML_obs[[f]], lwd=2, xpd=NA)
