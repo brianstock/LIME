@@ -44,7 +44,7 @@ create_inputs <- function(lh, input_data){
                 length_raw <- new
             }
             if(dim(length_raw)[1] > 1) max_bin <- max(c(max(bins_dim)+(bw/2), 
-                                                        sapply(1:dat_input$nfleets, function(x) as.numeric(bins_dim[max(which(colSums(length_raw[,,x])>0))]) + (bw/2))))
+                                                        sapply(1:dat_input$nfleets, function(x) as.numeric(bins_dim[max(which(colSums(length_raw[,,x])>0))]) + (bw/2))),na.rm=T)
             if(dim(length_raw)[1] == 1) max_bin <- max(c(max(bins_dim)+(bw/2),
                                                         sapply(1:dat_input$nfleets, function(x) as.numeric(bins_dim[max(which(length_raw[,,x]>0))]) + (bw/2))))
         
