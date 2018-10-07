@@ -263,6 +263,37 @@ if("SB" %in% plot){
   if(all(is.null(True))==FALSE) lines(True$D_t[seq(1,by=ns,length.out=Inputs$Data$n_y)], lwd=2)
 
 }
+
+# B.Stock Oct 2018: add fit to index
+# dlognorm( I_ft(f,t), log(I_ft_hat(f,t)), sigma_I, true);
+# I_ft = index data
+# I_ft_hat = fit/pred index --- added ADREPORT line to LIME.cpp
+# sigma_I
+if("Ind" %in% plot){
+
+  if(all(is.na(Sdreport))==FALSE){
+    sd <- summary(Sdreport)[which(rownames(summary(Sdreport))=="I_ft_hat"),]
+    sd[,2][which(is.na(sd[,2]))] <- 0
+    for(f in 1:nf){
+      # sd <- sd[seq(f,by=nf,length.out=Inputs$Data$n_y),]  
+      sdf <- sd[seq(f*ns,by=nf*ns,length.out=Inputs$Data$n_y),]  
+
+      Ind_obs <- lapply(1:nf, function(y){ Inputs$Data$I_ft[y,] })
+      Indy <- read_sdreport(sdf, log=FALSE)
+      if("Ind" %in% names(set_ylim) == FALSE) ylim <- c(min(Indy,na.rm=T)*0.98, max(Indy,na.rm=T)*1.02)
+      if("Ind" %in% names(set_ylim)) ylim <- set_ylim[["Ind"]]
+      
+      plot(x=1,y=1, type="n", xaxt="n", ylab="Index", xlab="Year", xaxs="i", yaxs="i", cex.axis=2, cex.lab=2, xlim=c(min(seq_along(xY)), max(seq_along(xY))), ylim=ylim)
+
+      polygon(y=Indy, x=c(which(is.na(sdf[,2])==FALSE), rev(which(is.na(sdf[,2])==FALSE))), col=paste0(cols[f],"40"), border=NA)
+      lines(x=seq_along(xY), y=sdf[,1], lwd=2, col=cols[f])
+      points(x=which(is.na(Ind_obs[[f]])==FALSE), y=sdf[which(is.na(Ind_obs[[f]])==FALSE),1], pch=19, col=cols[f], xpd=NA, cex=2)
+      lines(x=seq_along(xY), y=Ind_obs[[f]], lwd=2, xpd=NA)
+    }
+  }
+  axis(1, cex.axis=2, at=ilab2, labels=lab)
+
+}
     
 if("Selex" %in% plot){
   mids <- as.numeric(colnames(Inputs$Data$LF_tlf))

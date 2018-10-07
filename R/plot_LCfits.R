@@ -11,6 +11,7 @@
 #' @param plot_fit default = TRUE if Report file or LBSPR file is included, plot the model fits, otherwise plot data only
 #' @param n if TRUE, will display sample size of length comp data; default FALSE
 #' @param time_labels default=NULL, otherwise a vector of time series names
+#' @param year_labels default=NULL, vector of year labels
 #' @importFrom graphics abline axis barplot box legend lines mtext par
 #' 
 #' @return figure with length composition data and model fits if Report or LBSPR are specified

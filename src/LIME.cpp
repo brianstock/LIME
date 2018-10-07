@@ -702,6 +702,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT( lI_ft );
   ADREPORT( lC_ft );
   ADREPORT( ML_ft_hat );
+  ADREPORT( I_ft_hat );
   ADREPORT( lSB_t );
   ADREPORT( lF_t );
   ADREPORT( lF_ft );
