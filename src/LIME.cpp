@@ -37,6 +37,7 @@ Type objective_function<Type>::operator() ()
     DATA_ARRAY(LF_tlf); // length composition
     DATA_MATRIX(n_LF_ft); // number of independent observations by fleet annually, between 1 and C_t
     DATA_MATRIX(I_ft); // CPUE for each year
+    // DATA_INTEGER(I_type); // if I_type=0, no index data, if I_type=1, numbers, if I_type=2, biomass    
     DATA_MATRIX(C_ft); // catch each year
     DATA_INTEGER(C_type); // if C_type=0, no catch data, if C_type=1, numbers, if C_type=2, biomass
     DATA_MATRIX(ML_ft); // mean length each year
@@ -278,18 +279,21 @@ Type objective_function<Type>::operator() ()
   matrix<Type> N_ta(n_t,n_a); // abundance
   matrix<Type> SB_ta(n_t,n_a); // spawning biomass
   matrix<Type> TB_ta(n_t,n_a); // total biomass
+  matrix<Type> SN_ta(n_t,n_a); // number of spawners at age a, time t
   N_ta.setZero();
   SB_ta.setZero();
   TB_ta.setZero();
-  SB_ta.setZero();
+  SN_ta.setZero(); 
 
   //over time
   vector<Type> N_t(n_t); // abundance
   vector<Type> SB_t(n_t); //spawning biomass
   vector<Type> TB_t(n_t); //total biomass
+  vector<Type> SN_t(n_t); //number of spawners
   N_t.setZero();
   SB_t.setZero();
   TB_t.setZero();
+  SN_t.setZero();  
 
   for(int a=0;a<n_a;a++){
     // Population abundance
@@ -306,12 +310,16 @@ Type objective_function<Type>::operator() ()
     // Spawning biomass
     SB_ta(0,a) = N_ta(0,a) * Mat_a(a) * W_a(a);
 
+    // Spawning numbers
+    SN_ta(0,a) = N_ta(0,a) * Mat_a(a);    
+
     // Total biomass
     TB_ta(0,a) = N_ta(0,a) * W_a(a);
 
     //Annual values
     if(a>0) N_t(0) += N_ta(0,a);
     SB_t(0) += SB_ta(0,a);
+    SN_t(0) += SN_ta(0,a);
     TB_t(0) += TB_ta(0,a);
   }
 
@@ -379,6 +387,9 @@ Type objective_function<Type>::operator() ()
       // Spawning biomass
       SB_ta(t,a) = N_ta(t,a)*Mat_a(a)*W_a(a);
 
+      // Spawning numbers
+      SN_ta(t,a) = N_ta(t,a)*Mat_a(a);
+
       // Total biomass
       TB_ta(t,a) = N_ta(t,a)*W_a(a);
       
@@ -386,6 +397,7 @@ Type objective_function<Type>::operator() ()
       if(a>0) N_t(t) += N_ta(t,a);
       SB_t(t) += SB_ta(t,a);
       TB_t(t) += TB_ta(t,a);
+      SN_t(t) += SN_ta(t,a);
     }
   }
 
@@ -585,7 +597,8 @@ Type objective_function<Type>::operator() ()
   matrix<Type> I_ft_hat(n_fl,n_t);
   for(int f=0;f<n_fl;f++){
     for(int t=0;t<n_t;t++){
-        I_ft_hat(f,t) = q_f(f)*TB_t(t);
+        // I_ft_hat(f,t) = q_f(f)*TB_t(t);
+        I_ft_hat(f,t) = q_f(f)*SN_t(t); // index is numbers of spawners, not biomass and no immature fish
     }
   }
 
@@ -659,6 +672,7 @@ Type objective_function<Type>::operator() ()
 
     vector<Type> lN_t(n_t);
     vector<Type> lSB_t(n_t);
+    vector<Type> lSN_t(n_t);    
     vector<Type> lTB_t(n_t);
     vector<Type> lR_t(n_t);
     vector<Type> lF_t(n_t);
@@ -670,6 +684,7 @@ Type objective_function<Type>::operator() ()
     for(int t=0;t<n_t;t++){
       lN_t(t) = log(N_t(t));
       lSB_t(t) = log(SB_t(t));
+      lSN_t(t) = log(SN_t(t));      
       lTB_t(t) = log(TB_t(t));
       lR_t(t) = log(R_t(t));
       lF_t(t) = log(F_t(t));
@@ -703,6 +718,7 @@ Type objective_function<Type>::operator() ()
   ADREPORT( lC_ft );
   ADREPORT( ML_ft_hat );
   ADREPORT( I_ft_hat );
+  ADREPORT( SN_t );  
   ADREPORT( lSB_t );
   ADREPORT( lF_t );
   ADREPORT( lF_ft );
@@ -751,6 +767,7 @@ Type objective_function<Type>::operator() ()
   REPORT( Cn_ft );
   REPORT( Cw_ft );
   REPORT( SB_t );
+  REPORT( SN_t );  
   REPORT( TB_t );
   REPORT( SB0 );
   REPORT(D_t);
