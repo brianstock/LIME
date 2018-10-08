@@ -136,7 +136,7 @@ if("Fish" %in% plot){
       }
     }
     lines(x=xY, y=exp(sd_total[,1]), lwd=2, col=col_total)
-    points(x=unique(unlist(xLC)), y=exp(sd_total[unique(unlist(xLC)),1]), lwd=2, col=col_total, pch=19, cex=2, xpd=NA)
+    points(x=unique(unlist(xLC)), y=exp(sd_total[unique(unlist(xLC)),1]), lwd=2, col=col_total, pch=19, cex=1.2, xpd=NA)
   }
 
   if(all(is.null(Inputs))==FALSE){  
@@ -169,7 +169,7 @@ if("Rec" %in% plot){
       plot(x=1, y=1, type="n", xaxt="n", xaxs="i", yaxs="i", ylim=ylim, cex.axis=2, ylab="Recruitment", xlab="Year", cex.lab=2, xlim=c(min(xY),max(xY)))    
         polygon( y=read_sdreport(sd, log=TRUE), x=c(which(is.na(sd[,2])==FALSE), rev(which(is.na(sd[,2])==FALSE))), col=paste0(col_total, "40"), border=NA)
         lines(x=seq_along(xY), y=r_est, lwd=2, col=col_total, ylim=ylim, xpd=NA)
-        points(x=unique(unlist(xLC)), y=r_est[unique(unlist(xLC))], col=col_total, pch=19, cex=2, xpd=NA)
+        points(x=unique(unlist(xLC)), y=r_est[unique(unlist(xLC))], col=col_total, pch=19, cex=1.2, xpd=NA)
         axis(1, cex.axis=2, at=ilab2, labels=lab)
         if(all(is.null(True))==FALSE) lines(True$R_t[seq(1,by=ns,length.out=Inputs$Data$n_y)], lwd=2)
   }
@@ -194,7 +194,7 @@ if("SPR" %in% plot){
   }
   if(all(is.null(True))==FALSE) lines(True$SPR_t[seq(1,by=ns,length.out=Inputs$Data$n_y)], lwd=2)
   if(all(is.null(LBSPR))==FALSE){
-    points(x=xLC_lbspr, LBSPR$SPR, col="#AA00AA", pch=19, cex=2, xpd=NA)
+    points(x=xLC_lbspr, LBSPR$SPR, col="#AA00AA", pch=19, cex=1.2, xpd=NA)
     index <- which(is.na(LBSPR$var_SPR)==FALSE)
     ignore <- sapply(1:length(xLC_lbspr), function(x) segments(x0=xLC_lbspr[x],x1=xLC_lbspr[x],y0=LBSPR$SPR[index[x]]-1.96*sqrt(LBSPR$var_SPR[index[x]]), y1=LBSPR$SPR[index[x]]+1.96*sqrt(LBSPR$var_SPR[index[x]]), lwd=4, col=paste0("#AA00AA","40")))
     lines(x=xLC_lbspr, y=LBSPR$SPR_smooth, lwd=2, col="#AA00AA")
@@ -227,15 +227,15 @@ if("ML" %in% plot){
         return(ml[seq(1,by=ns,length.out=Inputs$Data$n_y)])
       })
       MLy <- read_sdreport(sdf, log=FALSE)
-      if("ML" %in% names(set_ylim) == FALSE) ylim <- c(min(c(MLy,ML_obs),na.rm=T)*0.98, max(c(MLy,ML_obs),na.rm=T)*1.02)
+      if("ML" %in% names(set_ylim) == FALSE) ylim <- c(min(min(MLy,na.rm=T),ML_obs)*0.98, max(max(MLy,na.rm=T),ML_obs)*1.02)
       if("ML" %in% names(set_ylim)) ylim <- set_ylim[["ML"]]
       
       plot(x=1,y=1, type="n", xaxt="n", ylab="Mean length", xlab="Year", xaxs="i", yaxs="i", cex.axis=2, cex.lab=2, xlim=c(min(seq_along(xY)), max(seq_along(xY))), ylim=ylim)
 
       polygon(y=MLy, x=c(which(is.na(sdf[,2])==FALSE), rev(which(is.na(sdf[,2])==FALSE))), col=paste0(cols[f],"40"), border=NA)
       lines(x=seq_along(xY), y=sdf[,1], lwd=2, col=cols[f])
-      points(x=which(is.na(ML_obs[[f]])==FALSE), y=sdf[which(is.na(ML_obs[[f]])==FALSE),1], pch=19, col=cols[f], xpd=NA, cex=2)
-      lines(x=seq_along(xY), y=ML_obs[[f]], lwd=2, xpd=NA)
+      points(x=which(is.na(ML_obs[[f]])==FALSE), y=sdf[which(is.na(ML_obs[[f]])==FALSE),1], pch=19, col=cols[f], xpd=NA, cex=1.2)
+      points(x=seq_along(xY), y=ML_obs[[f]], pch=19,cex=2,col='black',xpd=NA)
     }
   }
 
@@ -256,7 +256,7 @@ if("SB" %in% plot){
 
       polygon(y=read_sdreport(sd, log=TRUE), x=c(which(is.na(sd[,2])==FALSE), rev(which(is.na(sd[,2])==FALSE))), col=paste0(col_total, "40"), border=NA)
       lines(x=seq_along(xY), y=exp(sd[,1]), lwd=2, col=col_total)
-      points(x=unique(unlist(xLC)), y=exp(sd[unique(unlist(xLC)),1]), pch=19, col=col_total, xpd=NA, cex=2)
+      points(x=unique(unlist(xLC)), y=exp(sd[unique(unlist(xLC)),1]), pch=19, col=col_total, xpd=NA, cex=1.2)
 
   }
   axis(1, cex.axis=2, at=ilab2, labels=lab)
@@ -280,15 +280,16 @@ if("Ind" %in% plot){
 
       Ind_obs <- lapply(1:nf, function(y){ Inputs$Data$I_ft[y,] })
       Indy <- read_sdreport(sdf, log=FALSE)
-      if("Ind" %in% names(set_ylim) == FALSE) ylim <- c(min(c(Indy,Ind_obs),na.rm=T)*0.98, max(c(Indy,Ind_obs),na.rm=T)*1.02)
+      if("Ind" %in% names(set_ylim) == FALSE) ylim <- c(min(min(Indy,na.rm=T),Ind_obs)*0.98, max(max(Indy,na.rm=T),Ind_obs)*1.02)
       if("Ind" %in% names(set_ylim)) ylim <- set_ylim[["Ind"]]
       
       plot(x=1,y=1, type="n", xaxt="n", ylab="Index", xlab="Year", xaxs="i", yaxs="i", cex.axis=2, cex.lab=2, xlim=c(min(seq_along(xY)), max(seq_along(xY))), ylim=ylim)
 
       polygon(y=Indy, x=c(which(is.na(sdf[,2])==FALSE), rev(which(is.na(sdf[,2])==FALSE))), col=paste0(cols[f],"40"), border=NA)
       lines(x=seq_along(xY), y=sdf[,1], lwd=2, col=cols[f])
-      points(x=which(is.na(Ind_obs[[f]])==FALSE), y=sdf[which(is.na(Ind_obs[[f]])==FALSE),1], pch=19, col=cols[f], xpd=NA, cex=2)
-      lines(x=seq_along(xY), y=Ind_obs[[f]], lwd=2, xpd=NA)
+      points(x=which(is.na(Ind_obs[[f]])==FALSE), y=sdf[which(is.na(Ind_obs[[f]])==FALSE),1], pch=19, col=cols[f], xpd=NA, cex=1.2)
+      # lines(x=seq_along(xY), y=Ind_obs[[f]], lwd=2, xpd=NA)
+      points(x=seq_along(xY), y=Ind_obs[[f]], pch=19,cex=2,col='black',xpd=NA)
     }
   }
   axis(1, cex.axis=2, at=ilab2, labels=lab)
