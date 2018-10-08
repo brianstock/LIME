@@ -225,17 +225,18 @@ if("ML" %in% plot){
           sum(subLF[x,]*Inputs$Data$lbmids)/sum(subLF[x,])
         })
         return(ml[seq(1,by=ns,length.out=Inputs$Data$n_y)])
-      })
+      })[[f]]
       MLy <- read_sdreport(sdf, log=FALSE)
-      if("ML" %in% names(set_ylim) == FALSE) ylim <- c(min(MLy,na.rm=T)*0.98, max(MLy,na.rm=T)*1.02)
+      if("ML" %in% names(set_ylim) == FALSE) ylim <- c(min(min(MLy,na.rm=T),ML_obs,na.rm=T)*0.98, max(max(MLy,na.rm=T),ML_obs,na.rm=T)*1.02)
       if("ML" %in% names(set_ylim)) ylim <- set_ylim[["ML"]]
       
       plot(x=1,y=1, type="n", xaxt="n", ylab="Mean length", xlab="Year", xaxs="i", yaxs="i", cex.axis=2, cex.lab=2, xlim=c(min(seq_along(xY)), max(seq_along(xY))), ylim=ylim)
 
       polygon(y=MLy, x=c(which(is.na(sdf[,2])==FALSE), rev(which(is.na(sdf[,2])==FALSE))), col=paste0(cols[f],"40"), border=NA)
       lines(x=seq_along(xY), y=sdf[,1], lwd=2, col=cols[f])
-      points(x=which(is.na(ML_obs[[f]])==FALSE), y=sdf[which(is.na(ML_obs[[f]])==FALSE),1], pch=19, col=cols[f], xpd=NA, cex=1.2)
-      points(x=seq_along(xY), y=ML_obs[[f]], pch=19,cex=2,col='black',xpd=NA)
+      points(x=which(is.na(ML_obs)==FALSE), y=sdf[which(is.na(ML_obs)==FALSE),1], pch=19, col=cols[f], xpd=NA, cex=1.2)
+      lines(x=seq_along(xY), y=ML_obs, lwd=2, xpd=NA)
+      points(x=seq_along(xY), y=ML_obs, pch=19,cex=1.5,col='black',xpd=NA)
     }
   }
 
@@ -278,18 +279,19 @@ if("Ind" %in% plot){
       # sd <- sd[seq(f,by=nf,length.out=Inputs$Data$n_y),]  
       sdf <- sd[seq(f*ns,by=nf*ns,length.out=Inputs$Data$n_y),]  
 
-      Ind_obs <- lapply(1:nf, function(y){ Inputs$Data$I_ft[y,] })
+      Ind_obs <- lapply(1:nf, function(y){ Inputs$Data$I_ft[y,] })[[f]]
+      Ind_obs[Ind_obs<0] <- NA
       Indy <- read_sdreport(sdf, log=FALSE)
-      if("Ind" %in% names(set_ylim) == FALSE) ylim <- c(min(Indy,na.rm=T)*0.98, max(Indy,na.rm=T)*1.02)
+      if("Ind" %in% names(set_ylim) == FALSE) ylim <- c(min(min(Indy,na.rm=T),Ind_obs,na.rm=T)*0.98, max(max(Indy,na.rm=T),Ind_obs,na.rm=T)*1.02)
       if("Ind" %in% names(set_ylim)) ylim <- set_ylim[["Ind"]]
       
       plot(x=1,y=1, type="n", xaxt="n", ylab="Index", xlab="Year", xaxs="i", yaxs="i", cex.axis=2, cex.lab=2, xlim=c(min(seq_along(xY)), max(seq_along(xY))), ylim=ylim)
 
       polygon(y=Indy, x=c(which(is.na(sdf[,2])==FALSE), rev(which(is.na(sdf[,2])==FALSE))), col=paste0(cols[f],"40"), border=NA)
       lines(x=seq_along(xY), y=sdf[,1], lwd=2, col=cols[f])
-      points(x=which(is.na(Ind_obs[[f]])==FALSE), y=sdf[which(is.na(Ind_obs[[f]])==FALSE),1], pch=19, col=cols[f], xpd=NA, cex=1.2)
-      # lines(x=seq_along(xY), y=Ind_obs[[f]], lwd=2, xpd=NA)
-      points(x=seq_along(xY), y=Ind_obs[[f]], pch=19,cex=2,col='black',xpd=NA)
+      points(x=which(is.na(Ind_obs)==FALSE), y=sdf[which(is.na(Ind_obs)==FALSE),1], pch=19, col=cols[f], xpd=NA, cex=1.2)
+      lines(x=seq_along(xY), y=Ind_obs, lwd=2, xpd=NA)
+      points(x=seq_along(xY), y=Ind_obs, pch=19,cex=1.5,col='black',xpd=NA)
     }
   }
   axis(1, cex.axis=2, at=ilab2, labels=lab)
