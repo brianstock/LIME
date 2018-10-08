@@ -227,7 +227,7 @@ if("ML" %in% plot){
         return(ml[seq(1,by=ns,length.out=Inputs$Data$n_y)])
       })
       MLy <- read_sdreport(sdf, log=FALSE)
-      if("ML" %in% names(set_ylim) == FALSE) ylim <- c(min(min(MLy,na.rm=T),ML_obs)*0.98, max(max(MLy,na.rm=T),ML_obs)*1.02)
+      if("ML" %in% names(set_ylim) == FALSE) ylim <- c(min(MLy,na.rm=T)*0.98, max(MLy,na.rm=T)*1.02)
       if("ML" %in% names(set_ylim)) ylim <- set_ylim[["ML"]]
       
       plot(x=1,y=1, type="n", xaxt="n", ylab="Mean length", xlab="Year", xaxs="i", yaxs="i", cex.axis=2, cex.lab=2, xlim=c(min(seq_along(xY)), max(seq_along(xY))), ylim=ylim)
@@ -280,7 +280,7 @@ if("Ind" %in% plot){
 
       Ind_obs <- lapply(1:nf, function(y){ Inputs$Data$I_ft[y,] })
       Indy <- read_sdreport(sdf, log=FALSE)
-      if("Ind" %in% names(set_ylim) == FALSE) ylim <- c(min(min(Indy,na.rm=T),Ind_obs)*0.98, max(max(Indy,na.rm=T),Ind_obs)*1.02)
+      if("Ind" %in% names(set_ylim) == FALSE) ylim <- c(min(Indy,na.rm=T)*0.98, max(Indy,na.rm=T)*1.02)
       if("Ind" %in% names(set_ylim)) ylim <- set_ylim[["Ind"]]
       
       plot(x=1,y=1, type="n", xaxt="n", ylab="Index", xlab="Year", xaxs="i", yaxs="i", cex.axis=2, cex.lab=2, xlim=c(min(seq_along(xY)), max(seq_along(xY))), ylim=ylim)
