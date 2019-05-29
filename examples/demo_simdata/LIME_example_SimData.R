@@ -60,7 +60,8 @@ legend("topright", legend=lh$ages[seq(2,length(lh$ages),by=3)], col=col_vec[seq(
 
 ##----------------------------------------------------
 ## Step 2: Setup data input
-## ---------------------------------------------------
+## --------------------------------------------------
+
 #######################################
 ## Simulation feature
 #######################################
@@ -74,8 +75,8 @@ true <- generate_data(modpath=NULL,
 					  comp_sample=200,
 					  init_depl=0.7,
 					  seed=123,
-					  fleet_proportions=1)
-
+					  fleet_proportions=1,
+					  derive_quants=TRUE)
 
 ## plot simulated data
 par(mfrow=c(3,2))
@@ -143,7 +144,8 @@ inputs_all <- create_inputs(lh=lh, input_data=data_all)
 rich <- run_LIME(modpath=NULL, 
 				input=inputs_all,
 				data_avail="Index_Catch_LC",
-				C_type=2) 
+				C_type=2,
+				derive_quants=TRUE) 
 
 ## check TMB inputs
 Inputs <- rich$Inputs
@@ -180,6 +182,9 @@ plot_output(Inputs=Inputs,
 			True=true, 
 			plot=c("Fish","Rec","SPR","ML","SB","Selex"), 
 			set_ylim=list("SPR" = c(0,1)))
+
+plot(true$BBmsy, ylim=c(0,4))
+lines(rich$Derived$BBmsy)
 
 
 #######################################
@@ -302,6 +307,55 @@ plot_output(Inputs=Inputs,
 			True=true, 
 			plot=c("Fish","Rec","SPR","ML","SB","Selex"), 
 			set_ylim=list("SPR" = c(0,1), "SB"=c(0,2)))		
+
+
+### remove some years of catch
+LF_list2 <- lapply(1:lh$nfleets, function(x){
+	out <- LF_list[[x]]
+	out[1:15,] <- 0
+	return(out)
+}) ##list with 1 element per fleet, and each element is a matrix with rows = years, columns = upper length bins
+LF_df2 <- LFreq_df(LF_list2)
+
+
+data_rm <- list("years"=1:true$Nyears, "LF"=LF_df2, "I_ft"=true$I_ft, "C_ft"=true$Cw_ft)
+inputs_rm <- create_inputs(lh=lh, input_data=data_rm)
+
+catch_lc2 <- run_LIME(modpath=NULL, 
+				input=inputs_rm,
+				data_avail="Catch_LC",
+				C_type=2,
+				est_rdev_t = c(rep(0,5),rep(1,15)))
+
+## check TMB inputs
+Inputs <- catch_lc2$Inputs
+
+## Report file
+Report <- catch_lc2$Report
+
+## Standard error report
+Sdreport <- catch_lc2$Sdreport
+
+## check convergence
+hessian <- Sdreport$pdHess
+gradient <- catch_lc2$opt$max_gradient <= 0.001
+hessian == TRUE & gradient == TRUE
+
+
+## plot length composition data
+plot_LCfits(Inputs=Inputs, 
+			Report=Report)		
+
+## plot model output
+plot_output(Inputs=Inputs, 
+			Report=Report,
+			Sdreport=Sdreport, 
+			lh=lh,
+			True=true, 
+			plot=c("Fish","Rec","SPR","ML","SB","Selex"), 
+			set_ylim=list("SPR" = c(0,1), "SB"=c(0,2)))		
+
+
 
 #######################################
 ## Index + length data
@@ -755,7 +809,7 @@ rich <- run_LIME(modpath=NULL,
 				input=inputs_all,
 				data_avail="Index_Catch_LC",
 				C_type=2,
-				LFdist=0)
+				LFdist=1)
 
 ## check TMB inputs
 Inputs <- rich$Inputs
@@ -820,4 +874,41 @@ plot_output(Inputs=Inputs,
 			True=true, 
 			plot=c("Fish","Rec","SPR","ML","SB","Selex"), 
 			set_ylim=list("SPR" = c(0,1)))
+
+
+inputs_LC$SigmaF <- 0.1
+lc_only <- run_LIME(modpath=NULL, 
+				input=inputs_LC,
+				data_avail="LC",
+				LFdist=0)
+
+
+## check TMB inputs
+Inputs <- lc_only$Inputs
+
+## Report file
+Report <- lc_only$Report
+
+## Standard error report
+Sdreport <- lc_only$Sdreport
+
+## check convergence
+hessian <- Sdreport$pdHess
+gradient <- lc_only$opt$max_gradient <= 0.001
+hessian == TRUE & gradient == TRUE
+
+## plot length composition data and fits
+plot_LCfits(LF_df=LF_list, 
+			Inputs=Inputs, 
+			Report=Report)		
+
+## plot model output
+plot_output(Inputs=Inputs, 
+			Report=Report,
+			Sdreport=Sdreport, 
+			lh=lh,
+			True=true, 
+			plot=c("Fish","Rec","SPR","ML","SB","Selex"), 
+			set_ylim=list("SPR" = c(0,1)))
+
 

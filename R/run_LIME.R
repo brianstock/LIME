@@ -18,7 +18,7 @@
 #' @param rdev_startval_t default=NULL and Recruitment deviation starting values are at 0 for all years. Can also specify vector of recruitment deviation starting values for all years to be modeled (can start at truth for debugging)
 #' @param est_selex_f default=TRUE to estimate selectivity parameters, can set to FALSE for all or multiple fleets
 #' @param vals_selex_ft input selectivity-at-length (columns) by fleet (rows) - negative values in the first column indicate to estimate selectivity
-#' @param Rdet default=FALSE to estimate recruitment deviations, TRUE=deterministic recruitment
+#' @param est_rdev_t default=TRUE to estimate recruitment deviations, or specify vector with 0 to turn off deviations in a specific year and 1 to keep them on
 #' @param newtonsteps number of extra newton steps to take after optimization; FALSE to turn off
 #' @param F_up upper bound of fishing mortality estimate; default=10
 #' @param S50_up upper bound of length at 50 percent selectivity; default=NULL
@@ -54,7 +54,7 @@ run_LIME <- function(modpath,
                       rdev_startval_t=NULL,
                       est_selex_f=TRUE,
                       vals_selex_ft=-1,
-                      Rdet=FALSE,
+                      est_rdev_t=TRUE,
                       newtonsteps=3,
                       F_up=10,
                       S50_up=NULL,
@@ -132,6 +132,7 @@ for(iter in 1:length(itervec)){
     output <- NULL
     output$input <- input
     output$data_avail <- data_avail
+    if(grepl("catch", tolower(data_avail)) & C_type == 0) stop("If including catch data,  must specify C_type as 1 for numbers or 2 for biomass.")
 
     if(all(vals_selex_ft < 0)){
       vals_selex_ft_new <- matrix(-1, nrow=input$nfleets, ncol=length(input$highs))
@@ -162,7 +163,7 @@ for(iter in 1:length(itervec)){
                               rdev_startval_t=rdev_startval_t, 
                               est_selex_f=est_selex_f, 
                               vals_selex_ft=vals_selex_ft_new, 
-                              Rdet=Rdet, 
+                              est_rdev_t=est_rdev_t, 
                               mirror=mirror,
                               est_totalF=est_totalF,
                               prop_f=prop_f_inp)
@@ -304,8 +305,39 @@ for(iter in 1:length(itervec)){
       output$opt <- opt_save
 
       if(derive_quants==TRUE){
-          Derived = calc_derived_quants( Obj=obj_save, lh=lh )
+        if(all(is.na(Report))) Derived <- "Model NA"
+        if(all(is.na(Report))==FALSE){
+                    # MSY calculations
+          Fmsy <- optimize(calc_msy, ages=input$ages, M=input$M, R0=exp(Report$beta), W_a=input$W_a, S_fa=Report$S_fa, lower=0, upper=10, maximum=TRUE)$maximum
+          FFmsy <- Report$F_t/Fmsy
+          msy <- calc_msy(F=Fmsy, ages=input$ages, M=input$M, R0=exp(Report$beta), W_a=input$W_a, S_fa=Report$S_fa)
+          Bmsy <- sum(calc_equil_abund(ages=input$ages, M=input$M, F=Fmsy, S_fa=Report$S_fa, R0=exp(Report$beta)) * input$W_a)
+          SBmsy <- sum(calc_equil_abund(ages=input$ages, M=input$M, F=Fmsy, S_fa=Report$S_fa, R0=exp(Report$beta)) * input$W_a * input$Mat_a)        
+
+          SBBmsy <- Report$SB_t/SBmsy
+          BBmsy <- Report$TB_t/Bmsy
+
+
+          F30 <- tryCatch(uniroot(calc_ref, lower=0, upper=50, ages=input$ages, Mat_a=input$Mat_a, W_a=input$W_a, M=input$M, S_fa=Report$S_fa, ref=0.3)$root, error=function(e) NA) * input$nseasons
+          F40 <- tryCatch(uniroot(calc_ref, lower=0, upper=50, ages=input$ages, Mat_a=input$Mat_a, W_a=input$W_a, M=input$M, S_fa=Report$S_fa, ref=0.4)$root, error=function(e) NA) * input$nseasons
+          FF30 <- FF40 <- NULL
+          if(is.na(F30)==FALSE) FF30 <- Report$F_t/F30
+          if(is.na(F40)==FALSE) FF40 <- Report$F_t/F40
+
+          Derived <- NULL
+          Derived$Fmsy <- Fmsy
+          Derived$FFmsy <- FFmsy
+          Derived$msy <- msy
+          Derived$Bmsy <- Bmsy
+          Derived$BBmsy <- BBmsy
+          Derived$SBmsy <- SBmsy
+          Derived$SBBmsy <- SBBmsy
+          Derived$F30 <- F30
+          Derived$F40 <- F40
+          Derived$FF30 <- FF30
+          Derived$FF40 <- FF40
           output$Derived <- Derived
+        }
       }
 
         output$df <- df
