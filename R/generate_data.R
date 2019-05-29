@@ -18,6 +18,7 @@
 #' @param seed single seed or vector of seeds for each iteration
 #' @param mgt_type removals based on F (default) or catch
 #' @param fleet_proportions vector specifying the relative size of each fleet in terms of fishing pressure. must have length = nfleets and sum to 1.
+#' @param nareas number of areas, default = 1, if greater than 1, must be equal to the number of fleets
 #' @importFrom stats runif
 #' @importFrom TMB MakeADFun
 
@@ -38,7 +39,8 @@ generate_data <-
             derive_quants=FALSE, 
             seed, 
             mgt_type="F",
-            fleet_proportions=1){
+            fleet_proportions=1,
+            nareas = 1){
 
     if(is.null(modpath) & length(itervec)>1) stop("must specify path to save simulation iterations")
     if(is.null(modpath)) itervec <- 1
@@ -59,7 +61,7 @@ generate_data <-
     if(length(init_depl)==1){
         init_depl_input <- init_depl
         ## simulated data with no spatial structure in growth
-        DataList <- sim_pop(lh=lh, Nyears=Nyears, pool=pool, Fdynamics=Fdynamics, Rdynamics=Rdynamics, Nyears_comp=Nyears_comp, comp_sample=comp_sample, init_depl=init_depl_input, seed=iseed, mgt_type=mgt_type, fleet_proportions=fleet_proportions)
+        DataList <- sim_pop(lh=lh, Nyears=Nyears, pool=pool, Fdynamics=Fdynamics, Rdynamics=Rdynamics, Nyears_comp=Nyears_comp, comp_sample=comp_sample, init_depl=init_depl_input, seed=iseed, mgt_type=mgt_type, fleet_proportions=fleet_proportions, nareas = nareas)
         if(all(is.na(DataList))==FALSE & all(is.null(modpath)==FALSE)) write(iseed, file.path(modpath, iter, paste0("init_depl_seed", iseed,".txt")))
          
     }
@@ -73,7 +75,7 @@ generate_data <-
             seed_init <- iseed + add
             init_depl_input <- runif(1,init_depl[1],init_depl[2])
             ## simulated data with no spatial structure in growth
-            DataList <- tryCatch(sim_pop(lh=lh, pool=pool, Nyears=Nyears, Fdynamics=Fdynamics, Rdynamics=Rdynamics, Nyears_comp=Nyears_comp, comp_sample=comp_sample, init_depl=init_depl_input, seed=seed_init, fleet_proportions=fleet_proportions), error=function(e) NA)
+            DataList <- tryCatch(sim_pop(lh=lh, pool=pool, Nyears=Nyears, Fdynamics=Fdynamics, Rdynamics=Rdynamics, Nyears_comp=Nyears_comp, comp_sample=comp_sample, init_depl=init_depl_input, seed=seed_init, fleet_proportions=fleet_proportions, nareas = nareas), error=function(e) NA)
             if(all(is.na(DataList))==FALSE & all(is.null(modpath)==FALSE)) write(seed_init, file.path(modpath, iter, paste0("init_depl_seed", seed_init,".txt")))
             if(all(is.na(DataList))) add <- add + 1000
         }
@@ -82,32 +84,67 @@ generate_data <-
     if(length(init_depl)!=1 & length(init_depl)!=2) stop("init_depl must be a single proportion or 2 numbers inidicating minimum or maximum of range")
 
     inits <- create_inputs(lh=lh, input_data=DataList)
-
+    inits$B_t <- sapply(1:ncol(inits$N_at), function(x) sum(inits$N_at[,x] * inits$W_a))
+ 
     # if(nrow(DataList$LF)==1) DataList_out$LF <- t(as.matrix(DataList$LF[,1:length(lh$mids)]))
     # if(nrow(DataList$LF)>1) DataList_out$LF <- as.matrix(DataList$LF[,1:length(lh$mids)])
     # rownames(DataList_out$LF) <- rownames(DataList$LF)
 
     if(derive_quants==TRUE){
-        ## project the truth forward
-        inits$C_ft <- DataList$Cw_ft
-        TmbList <- format_input(input=inits, data_avail="Index_Catch_LC", Fpen=1, SigRpen=1, SigRprior=c(0.737,0.3), LFdist=1, C_type=2, est_more=FALSE, fix_more=FALSE, f_startval_ft=DataList$F_ft, rdev_startval_t=DataList$R_t, est_selex_f=FALSE, vals_selex_ft=DataList$S_fl, mirror=FALSE, Rdet=FALSE, est_totalF=FALSE, prop_f=1, est_F_ft=TRUE)
-        ParList <- TmbList$Parameters    
+        F30 <- tryCatch(with(DataList, uniroot(calc_ref, lower=0, upper=50, ages=ages, Mat_a=Mat_a, W_a=W_a, M=M, S_fa=S_fa, ref=0.3)$root), error=function(e) NA) * lh$nseasons
+        F40 <- tryCatch(with(DataList, uniroot(calc_ref, lower=0, upper=50, ages=ages, Mat_a=Mat_a, W_a=W_a, M=M, S_fa=S_fa, ref=0.4)$root), error=function(e) NA) * lh$nseasons
+        FF30 <- FF40 <- NULL
+        if(is.na(F30)==FALSE) FF30 <- inits$F_t/F30
+        if(is.na(F40)==FALSE) FF40 <- inits$F_t/F40
 
-        # dyn.load(paste0(cpp_dir, "\\", dynlib("LIME")))       
+  # Total biomass
+  # TB_t = Report$TB_t
+  # Cw_t <- Report$Cw_t_hat
 
-        obj <- MakeADFun(data=TmbList[["Data"]], parameters=ParList, random=TmbList[["Random"]], map=TmbList[["Map"]],inner.control=list(maxit=1e3), hessian=FALSE, DLL="LIME")  
-        Derived <- calc_derived_quants(Obj=obj, lh=lh) 
+  # MSY calculations
+  Fmsy <- optimize(calc_msy, ages=inits$ages, M=inits$M, R0=inits$R0, W_a=inits$W_a, S_fa=inits$S_fa, lower=0, upper=10, maximum=TRUE)$maximum
+  FFmsy <- inits$F_t/Fmsy
+  msy <- calc_msy(F=Fmsy, ages=inits$ages, M=inits$M, R0=inits$R0, W_a=inits$W_a, S_fa=inits$S_fa)
+  Bmsy <- sum(calc_equil_abund(ages=inits$ages, M=inits$M, F=Fmsy, S_fa=inits$S_fa, R0=inits$R0) * inits$W_a)
+  SBmsy <- sum(calc_equil_abund(ages=inits$ages, M=inits$M, F=Fmsy, S_fa=inits$S_fa, R0=inits$R0) * inits$W_a * inits$Mat_a)
 
-        inits$MSY <- Derived$MSY
-        inits$Fmsy <- Derived$Fmsy
-        inits$FFmsy <- Derived$FFmsy
-        inits$SBBmsy <- Derived$SBBmsy
-        inits$SBmsy <- Derived$SBmsy
-        inits$F30 <- Derived$F30
-        inits$FF30 <- Derived$FF30
-        inits$F40 <- Derived$F40
-        inits$FF40 <- Derived$FF40
-        inits$TBmsy <- Derived$TBmsy
+  SBBmsy <- inits$SB_t/SBmsy
+  BBmsy <- inits$B_t/Bmsy
+
+  inits$F30 <- F30
+  inits$F40 <- F40
+  inits$FF30 <- FF30
+  inits$FF40 <- FF40
+  inits$Fmsy <- Fmsy
+  inits$msy <- msy
+  inits$FFmsy <- FFmsy
+  inits$Bmsy <- Bmsy
+  inits$BBmsy <- BBmsy
+  inits$SBBmsy <- SBBmsy
+  inits$SBmsy <- SBmsy
+
+        # ## project the truth forward
+        # inits$C_ft <- DataList$Cw_ft
+        # TmbList <- format_input(input=inits, data_avail="Index_Catch_LC", LFdist=1, C_type=2, est_more=FALSE, fix_more=FALSE, f_startval_ft=DataList$F_ft, rdev_startval_t=DataList$R_t, est_selex_f=FALSE, vals_selex_ft=DataList$S_fl, est_rdev_t=rep(0,length(DataList$R_t)), mirror=FALSE, est_totalF=FALSE, prop_f=1, est_F_ft=matrix(0,nrow=1,ncol=ncol(DataList$F_ft)))
+        # ParList <- TmbList$Parameters    
+
+        # # dyn.load(paste0(cpp_dir, "\\", dynlib("LIME")))       
+
+        # obj <- MakeADFun(data=TmbList[["Data"]], parameters=ParList, random=TmbList[["Random"]], map=TmbList[["Map"]],inner.control=list(maxit=1e3), hessian=FALSE, DLL="LIME")  
+        # Derived <- calc_derived_quants(Obj=obj, lh=lh) 
+
+        # inits$Derived <- Derived
+        # inits$MSY <- Derived$MSY
+        # inits$Fmsy <- Derived$Fmsy
+        # inits$FFmsy <- Derived$FFmsy
+        # inits$SBBmsy <- Derived$SBBmsy
+        # inits$SBmsy <- Derived$SBmsy
+        # inits$F30 <- Derived$F30
+        # inits$FF30 <- Derived$FF30
+        # inits$F40 <- Derived$F40
+        # inits$FF40 <- Derived$FF40
+        # inits$TBmsy <- Derived$TBmsy
+        # inits$TBBmsy <- Derived$TBBmsy
     }
 
       if(is.null(modpath)==FALSE) saveRDS(inits, file.path(iterpath, "True.rds"))

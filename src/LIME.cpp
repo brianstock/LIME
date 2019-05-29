@@ -62,9 +62,6 @@ Type objective_function<Type>::operator() ()
     DATA_IVECTOR(selex_type_f); //0 =fixed, 1=estimated
     DATA_MATRIX(vals_selex_ft);
 
-    // option for deterministic or stochastic recruitment
-    DATA_INTEGER(Rdet);
-
     // option for likelihood distribution for length comps
     DATA_INTEGER(LFdist); // 0=multinomial, 1=dirichlet-multinomial
 
@@ -236,9 +233,9 @@ Type objective_function<Type>::operator() ()
   n_a2 = match_ages.size();
   Type SB0 = 0;
   for(int a=0;a<n_a;a++){
-    for(int a2=0;a2<n_a2;a2++){
-      if(ages(a) == match_ages(a2)) SB0 += (exp(beta)*Type(n_s)) * exp(-M * Type(n_s) * Type(ages(a))) * W_a(a) * Mat_a(a);
-    }
+    // for(int a2=0;a2<n_a2;a2++){
+      SB0 += (exp(beta) * exp(-M * Type(a))) * W_a(a) * Mat_a(a);
+    // }
     
   }
   
@@ -272,8 +269,7 @@ Type objective_function<Type>::operator() ()
   // ============ initialize =============  
   vector<Type> R_t(n_t); //recruitment
   R_t.setZero();
-  if(Rdet==0) R_t(0) = exp(beta) * exp(Nu_input(0) - pow(sigma_R,2)/Type(2));
-  if(Rdet==1) R_t(0) = exp(beta);
+  R_t(0) = exp(beta) * exp(Nu_input(0) - pow(sigma_R,2)/Type(2));
 
   //over time by age
   matrix<Type> N_ta(n_t,n_a); // abundance
@@ -350,7 +346,7 @@ Type objective_function<Type>::operator() ()
   //year 1
   for(int f=0;f<n_fl;f++){
     for(int a=0;a<n_a;a++){
-      Cn_taf(0,a,f) = N_ta(0,a) * (Type(1.0) - exp(-M - F_ta(0,a))) * (F_atf(a,0,f))/(M + F_ta(0,a));
+      Cn_taf(0,a,f) = N_ta(0,a) * (Type(1.0) - exp(-M - F_atf(a,0,f))) * (F_atf(a,0,f))/(M + F_atf(a,0,f));
       Cw_taf(0,a,f) = W_a(a) * Cn_taf(0,a,f);
 
       Cn_ta(0,a) += Cn_taf(0,a,f);
@@ -367,8 +363,8 @@ Type objective_function<Type>::operator() ()
   // ============ project forward in time =============  
   for(int t=1;t<n_t;t++){
     // Recruitment
-    if(Rdet==0) R_t(t) = ((4 * h * exp(beta) * SB_t(t-1)) / (SB0 * (1-h) + SB_t(t-1) * (5*h-1))) * exp(Nu_input(S_yrs(t)-1) - pow(sigma_R,2)/Type(2));
-    if(Rdet==1) R_t(t) = ((4 * h * exp(beta) * SB_t(t-1)) / (SB0 * (1-h) + SB_t(t-1) * (5*h-1)));
+    R_t(t) = ((4 * h * exp(beta) * SB_t(t-1)) / (SB0 * (1-h) + SB_t(t-1) * (5*h-1))) * exp(Nu_input(S_yrs(t)-1) - pow(sigma_R,2)/Type(2));
+    if(S_yrs(t) == S_yrs(t-1)) R_t(t) = 0;
     
     // Age-structured dynamics
     for(int a=0;a<n_a;a++){
@@ -405,7 +401,7 @@ Type objective_function<Type>::operator() ()
   for(int f=0;f<n_fl;f++){
     for(int t=1;t<n_t;t++){
       for(int a=0;a<n_a;a++){
-        Cn_taf(t,a,f) = N_ta(t,a) * (Type(1.0) - exp(-M - F_ta(t,a))) * (F_atf(a,t,f))/(M + F_ta(t,a));
+        Cn_taf(t,a,f) = N_ta(t,a) * (Type(1.0) - exp(-M - F_atf(a,t,f))) * (F_atf(a,t,f))/(M + F_atf(a,t,f));
         Cw_taf(t,a,f) = Cn_taf(t,a,f) * W_a(a);  
 
         Cn_ta(t,a) += Cn_taf(t,a,f);
@@ -450,8 +446,8 @@ Type objective_function<Type>::operator() ()
     for(int t=0;t<n_t;t++){
       plb_sums(f,t) = 0;
       for(int l=0;l<n_lb;l++){
-        if(plb_init(t,l)==0) plb_init(t,l) = 1e-20;
-        plb_sums(f,t) += plb_init(t,l);
+        // if(plb_init(t,l)==0) plb_init(t,l) = 1e-20;
+        plb_sums(f,t) += plb_init(t,l) + Type(1e-20);
       }
     }
     for(int t=0;t<n_t;t++){
@@ -616,7 +612,7 @@ Type objective_function<Type>::operator() ()
   for(int f=0;f<n_fl;f++){
     for(int t=0;t<n_t;t++){  
           // probability of index at that sample
-        if(C_ft(f,t)>0){
+        if(C_ft(f,t)>=0){
           if(C_type==1) log_pC_ft(f,t) += dlognorm( C_ft(f,t), log(Cn_ft(f,t)), sigma_C, true);
           if(C_type==2) log_pC_ft(f,t) += dlognorm( C_ft(f,t), log(Cw_ft(f,t)), sigma_C, true);
         }
@@ -636,11 +632,9 @@ Type objective_function<Type>::operator() ()
   // ------ likelihood components ----------//
   // ============ Probability of random effects =============
   jnll_comp(0) = 0;
-  if(Rdet==0){
     for(int y=0;y<n_y;y++){
       jnll_comp(0) -= dnorm(Nu_input(y), Type(0.0), sigma_R, true);
     }    
-  }
 
 
   // ============ Probability of data =============
