@@ -82,7 +82,7 @@ Type objective_function<Type>::operator() ()
 
     // new growth data
     DATA_MATRIX(dat_growth); // growth obs
-    DATA_SCALAR(n_g); // number of growth obs
+    DATA_INTEGER(n_g); // number of growth obs
 
   // ======== Parameters =================================
     // Fixed, estimated parameters
