@@ -134,7 +134,8 @@ sim_pop <-
             W_a = W_a,
             M = M,
             S_fa = S_fa, 
-            ref = 0.4)$root,
+            ref = 0.4,
+            fleet_prop=fleet_proportions)$root,
           error = function(e)
             NA
         )
@@ -149,7 +150,8 @@ sim_pop <-
             W_a = W_a,
             M = M,
             S_fa = S_fa, 
-            ref = init_depl)$root,
+            ref = init_depl,
+            fleet_prop=fleet_proportions)$root,
           error = function(e)
             NA
         )
@@ -166,7 +168,8 @@ sim_pop <-
             W_a = W_a,
             M = M,
             S_fa = S_fa, 
-            ref = 0.05)$root,
+            ref = 0.05,
+            fleet_prop=fleet_proportions)$root,
           error = function(e)
             NA
         )
@@ -297,7 +300,7 @@ sim_pop <-
       }
 
       ## unfished spawning biomass
-      SB0 <- sum(calc_equil_abund(ages=ages, M=M, F=0, R0=R0, S_fa=S_fa) * W_a * Mat_a)      
+      SB0 <- sum(calc_equil_abund(ages=ages, M=M, F=rep(0,nrow(S_fa)), R0=R0, S_fa=S_fa) * W_a * Mat_a)      
 
 
       ##########################
@@ -412,7 +415,8 @@ sim_pop <-
             W_a = W_a,
             M = M,
             S_fa = S_fa,
-            F = F_t[x]
+            F = F_ft[,x],
+            fleet_prop=fleet_proportions
           ))
       SPR <- SPR_t[length(SPR_t)]
 
@@ -506,7 +510,7 @@ sim_pop <-
       obs_per_year <- matrix(0, nrow=nfleets, ncol=Nyears)
       for(f in 1:nfleets){
         for(t in 1:Nyears){
-          if(oyears_mat[f,t]!=0) obs_per_year[f,t] <- (comp_sample/nseasons)
+          if(oyears_mat[f,t]!=0) obs_per_year[f,t] <- (comp_sample[f]/nseasons)
         }
       }
 
