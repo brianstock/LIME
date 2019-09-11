@@ -45,11 +45,13 @@ Type objective_function<Type>::operator() ()
     // Known values
     DATA_VECTOR(ages); // ages
     DATA_VECTOR(match_ages); // annual ages
-    DATA_VECTOR(L_a); // length-at-age
-    DATA_VECTOR(W_a); // weight-at-age
+    // DATA_VECTOR(L_a); // length-at-age
+    // DATA_VECTOR(W_a); // weight-at-age
+    DATA_VECTOR(lw_pars); // length-weight params (a, b)
+    DATA_VECTOR(Mat_l); // maturity at length
     DATA_SCALAR(M); // natural mortality
     DATA_SCALAR(h); // steepness
-    DATA_VECTOR(Mat_a); // maturity-at-age
+    // DATA_VECTOR(Mat_a); // maturity-at-age
     DATA_VECTOR(lbhighs); // upper length bins
     DATA_VECTOR(lbmids); // mid length bins
 
@@ -92,6 +94,10 @@ Type objective_function<Type>::operator() ()
     PARAMETER(log_CV_L); // coefficient of variation in the age-length curve
     PARAMETER_VECTOR(log_theta); // dirichlet-multinomial parameter
 
+    // estimate growth inside model
+    PARAMETER(log_vbk); 
+    PARAMETER(log_linf);
+    PARAMETER(t0);
 
     // Random effects
     PARAMETER_VECTOR(Nu_input); // temporal variation in recruitment
@@ -101,7 +107,7 @@ Type objective_function<Type>::operator() ()
 
   using namespace density;
   Type jnll=0;
-  vector<Type> jnll_comp(7);
+  vector<Type> jnll_comp(8);
   jnll_comp.setZero();
 
   // ======= Transform parameters =========================
@@ -115,7 +121,7 @@ Type objective_function<Type>::operator() ()
 
   // selectivity
   vector<Type> S50_f(n_fl);
-  vector<Type> Sdelta_f(n_fl);
+  //vector<Type> Sdelta_f(n_fl);
   vector<Type> S95_f(n_fl);
   for(int f=0;f<n_fl;f++){
     S50_f(f) = exp(log_S50_f(f));
@@ -137,6 +143,16 @@ Type objective_function<Type>::operator() ()
   } 
 
   // ========= Probability of being length at age  =============================
+
+  // Calculate expected length and weight at age
+  vector<Type> L_a(n_a);
+  vector<Type> W_a(n_a);
+  Type linf = exp(log_linf);
+  Type vbk = exp(log_vbk);
+  for(int a=0; a<n_a; a++){
+    L_a(a) = linf*(1-exp(-vbk*(ages(a) - t0)));
+    W_a(a) = lw_pars(0)*pow(L_a(a),lw_pars(1));
+  }
 
   /////probability of being in a length bin given INPUT age
   matrix<Type> plba(n_a,n_lb);
@@ -182,7 +198,7 @@ Type objective_function<Type>::operator() ()
     }
   }
 
-  //total F
+  // total F
   vector<Type> F_t(n_t);
   F_t.setZero();
   for(int f=0;f<n_fl;f++){
@@ -198,7 +214,7 @@ Type objective_function<Type>::operator() ()
     }
   }
 
-  //selectivity at length
+  // selectivity at length
   matrix<Type> S_fl(n_fl,n_lb);
   S_fl.setZero();
   for(int f=0;f<n_fl;f++){
@@ -208,8 +224,7 @@ Type objective_function<Type>::operator() ()
     }   
   }
 
-
-  // input age
+  // selectivity at age
   matrix<Type> S_fa(n_fl,n_a);
   S_fa.setZero();
   vector<Type> sub_plba(n_lb);
@@ -223,7 +238,17 @@ Type objective_function<Type>::operator() ()
       sub_plba.setZero();
     }     
   }
-          
+
+  // maturity at age
+  vector<Type> Mat_a(n_a);
+  Mat_a.setZero();
+  for(int a=0; a<n_a; a++){
+    sub_plba = plba.row(a);
+    for(int l=0; l<n_lb; l++){
+      Mat_a(a) += sub_plba(l) * Mat_l(l);
+    }
+    sub_plba.setZero();
+  }         
 
   // ============ equilibrium spawning biomass ===============
   // sum up relative spawning biomass at the beginning of each year
@@ -662,6 +687,16 @@ Type objective_function<Type>::operator() ()
     sigrp = dlognorm(sigma_R, log(SigRprior(0)), SigRprior(1), true);
     if(SigRpen==1) jnll_comp(6) = Type(-1)*sigrp;
 
+    // Growth data
+    vector<Type> dat_age = dat_growth.col(0);
+    vector<Type> dat_len = dat_growth.col(1);
+    vector<Type> pred_len(n_g);
+    jnll_comp(7) = 0;
+    for(int g=0; g<n_g; g++){
+      pred_len(g) = linf*(1-exp(-vbk*(dat_age(g)-t0)));
+      jnll_comp(7) -= dlognorm(dat_len(g), log(pred_len(g)) - pow(pred_len(g)*CV_L, 2)/2, pred_len(g)*CV_L, true);
+    }
+
     jnll = sum(jnll_comp);
 
     vector<Type> lN_t(n_t);
@@ -722,6 +757,8 @@ Type objective_function<Type>::operator() ()
   ADREPORT( SPR_t );
   ADREPORT( S50_f );
   ADREPORT( S95_f );
+  ADREPORT(vbk); 
+  ADREPORT(linf);
   // ADREPORT( S_fl );
 
   // Parameters
@@ -738,6 +775,9 @@ Type objective_function<Type>::operator() ()
   REPORT( sigma_I );
   REPORT( CV_L );
   REPORT( SPR_t );
+  REPORT(log_vbk); 
+  REPORT(log_linf);
+  REPORT(t0);
 
   // Random effects
   REPORT( Nu_input );
@@ -755,6 +795,7 @@ Type objective_function<Type>::operator() ()
   // Predicted quantities
   REPORT( ML_ft_hat );
   REPORT( I_ft_hat );
+  REPORT(pred_len);
   // Derived quantities
   REPORT( Cn_t_hat );
   REPORT( Cw_t_hat );
@@ -770,9 +811,9 @@ Type objective_function<Type>::operator() ()
   REPORT(plba);
   REPORT(page);
   REPORT(plb);
-  REPORT(W_a);
-  REPORT(L_a);
-  REPORT(Mat_a);
+  ADREPORT(W_a);
+  ADREPORT(L_a);
+  ADREPORT(Mat_a);
   REPORT(M);
   REPORT(h);
     // Likelihoods

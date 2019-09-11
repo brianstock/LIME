@@ -166,7 +166,8 @@ for(iter in 1:length(itervec)){
                               est_rdev_t=est_rdev_t, 
                               mirror=mirror,
                               est_totalF=est_totalF,
-                              prop_f=prop_f_inp)
+                              prop_f=prop_f_inp,
+                              dat_growth=dat_growth)
                             
                              # input=input 
                              #  data_avail=data_avail 

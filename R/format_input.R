@@ -21,6 +21,7 @@
 #' @param mirror vector of parameter names to mirror between fleets
 #' @param est_totalF TRUE estimate total F instead of by fleet
 #' @param prop_f proportion of catch from each fleet
+#' @param dat_growth matrix with growth data (col 1 = age, col 2 = length)
 #' @return List, a tagged list of Data, Parameters, Random, Map
 #' @export
 format_input <- function(input, 
@@ -40,7 +41,8 @@ format_input <- function(input,
                         est_rdev_t,
                         mirror,
                         est_totalF,
-                        prop_f){
+                        prop_f,
+                        dat_growth){
 
     with(input, {
 
@@ -124,11 +126,11 @@ format_input <- function(input,
                          "ML_ft"=matrix(-999, nrow=dim(LF)[3], ncol=dim(LF)[1]),
                          "ages"=ages,
                          "match_ages"=seq(min(ages), max(ages), by=1),
-                         "L_a"=L_a,
-                         "W_a"=W_a,
+                         # "L_a"=L_a,
+                         # "W_a"=W_a,
                          "M"=M,
                          "h"=h,
-                         "Mat_a"=Mat_a,
+                         # "Mat_a"=Mat_a,
                          "lbhighs"=highs,
                          "lbmids"=mids,
                          "Fpen"=Fpen,
@@ -144,7 +146,11 @@ format_input <- function(input,
                          "mirror_q"=mirror_q_inp,
                          # "indexF_ft"=indexF_ft,
                          "est_totalF"=ifelse(est_totalF==TRUE,1,0),
-                         "prop_f"=prop_f)   
+                         "prop_f"=prop_f,
+                         "lw_pars"=c(lwa, lwb),
+                         "Mat_l"=Mat_l,
+                         "dat_growth"=dat_growth,
+                         "n_g"=dim(dat_growth)[1])   
         }
 
         ## index and length composition data
@@ -325,7 +331,10 @@ format_input <- function(input,
                         "log_sigma_I"=log(SigmaI),
                         "log_CV_L"=log(CVlen),
                         "log_theta"=log(rep(theta, Data$n_fl)),
-                        "Nu_input"=rdev_startval_t)
+                        "Nu_input"=rdev_startval_t,
+                        "log_vbk"=log(vbk),
+                        "log_linf"=log(linf),
+                        "t0"=t0)
 
         ## turn off parameter estimation 
         Map = list()
