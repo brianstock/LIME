@@ -80,6 +80,10 @@ Type objective_function<Type>::operator() ()
     DATA_INTEGER(est_totalF);
     DATA_VECTOR(prop_f);
 
+    // new growth data
+    DATA_MATRIX(dat_growth); // growth obs
+    DATA_SCALAR(n_g); // number of growth obs
+
   // ======== Parameters =================================
     // Fixed, estimated parameters
     PARAMETER_MATRIX(log_F_ft);  // fishing mortality by fleet
