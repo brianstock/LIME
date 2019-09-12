@@ -698,7 +698,8 @@ Type objective_function<Type>::operator() ()
     jnll_comp(7) = 0;
     for(int g=0; g<n_g; g++){
       pred_len(g) = linf*(1-exp(-vbk*(dat_age(g)-t0)));
-      jnll_comp(7) -= dlognorm(dat_len(g), log(pred_len(g)) - pow(pred_len(g)*CV_L, 2)/2, pred_len(g)*CV_L, true);
+      jnll_comp(7) -= dnorm(dat_len(g), pred_len(g), pred_len(g)*CV_L, true);
+      // jnll_comp(7) -= dlognorm(dat_len(g), log(pred_len(g)) - pow(pred_len(g)*CV_L, 2)/2, pred_len(g)*CV_L, true);
     }
 
     jnll = sum(jnll_comp);

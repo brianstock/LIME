@@ -200,7 +200,7 @@ for(iter in 1:length(itervec)){
         opt_save[["final_gradient"]] <- NA
 
       ## first run
-      obj <- TMB::MakeADFun(data=TmbList[["Data"]], parameters=TmbList[["Parameters"]], random=TmbList[["Random"]], map=TmbList[["Map"]], inner.control=list(maxit=1e3), hessian=FALSE, DLL="LIME", checkParameterOrder = FALSE)
+      obj <- TMB::MakeADFun(data=TmbList[["Data"]], parameters=TmbList[["Parameters"]], random=TmbList[["Random"]], map=TmbList[["Map"]], inner.control=list(maxit=1e3), DLL="LIME", checkParameterOrder = FALSE)
 
       ## Settings
         Upr = rep(Inf, length(obj$par))
@@ -219,8 +219,38 @@ for(iter in 1:length(itervec)){
 
         ## Run optimizer
         # opt <- tryCatch( nlminb( start=obj$par, objective=obj$fn, gradient=obj$gr, upper=Upr, lower=Lwr, control=list(trace=1, eval.max=1e4, iter.max=1e4, rel.tol=1e-10) ), error=function(e) NA)    
-        if(is.numeric(newtonsteps)) opt <- tryCatch(TMBhelper::fit_tmb(obj=obj, upper=Upr, lower=Lwr, newtonsteps=newtonsteps, getsd=FALSE), error=function(e) NA)
-        if(is.numeric(newtonsteps)==FALSE) opt <- tryCatch(TMBhelper::fit_tmb(obj=obj, upper=Upr, lower=Lwr, loopnum=3, getsd=FALSE), error=function(e) NA)
+        # if(is.numeric(newtonsteps)) opt <- tryCatch(TMBhelper::fit_tmb(obj=obj, upper=Upr, lower=Lwr, newtonsteps=newtonsteps, getsd=FALSE), error=function(e) NA)
+        # if(is.numeric(newtonsteps)==FALSE) opt <- tryCatch(TMBhelper::fit_tmb(obj=obj, upper=Upr, lower=Lwr, loopnum=3, getsd=FALSE), error=function(e) NA)
+        opt <- TMBhelper::fit_tmb(obj=obj, upper=Upr, lower=Lwr, newtonsteps=newtonsteps, getsd=FALSE)
+   
+        # mod$opt <- stats::nlminb(mod$par, mod$fn, mod$gr, control = list(iter.max = 1000, eval.max = 1000))
+
+        # if(newtonsteps){ # Take a few extra newton steps
+        #   tryCatch(for(i in 1:newtonsteps) { 
+        #     g <- as.numeric(mod$gr(mod$opt$par))
+        #     h <- stats::optimHess(mod$opt$par, mod$fn, mod$gr)
+        #     mod$opt$par <- mod$opt$par - solve(h, g)
+        #     mod$opt$objective <- mod$fn(mod$opt$par)
+        #   }, error = function(e) {err <<- conditionMessage(e)}) # still want fit_tmb to return model if newton steps error out
+        # }
+        # if(exists("err")) mod$err <- err # store error message to print out in fit_wham
+      # mod <- TMB::MakeADFun(data=TmbList[["Data"]], parameters=TmbList[["Parameters"]], random=TmbList[["Random"]], map=TmbList[["Map"]], inner.control=list(maxit=1e3), DLL="LIME", checkParameterOrder = FALSE)
+
+      # ## Settings
+      #   Upr = rep(Inf, length(mod$par))
+      #   Upr[match("log_sigma_R",names(mod$par))] = log(2)
+      #   if(is.null(S50_up)==FALSE) Upr[which(names(mod$par)=="log_S50_f")] <- log(S50_up)
+      #   if(is.null(S50_up)) Upr[which(names(mod$par)=="log_S50_f")] <- log(input$linf)
+      #   Upr[which(names(mod$par)=="log_F_ft")] = log(F_up)
+      #   Upr[match("log_sigma_F", names(mod$par))] <- log(2)
+      #   # Upr[which(names(mod$par)=="log_theta")] <- log(10)
+
+      #   Lwr <- rep(-Inf, length(mod$par))
+      #   Lwr[match("log_CV_L",names(mod$par))] = log(0.001)
+      #   Lwr[match("log_sigma_C",names(mod$par))] = log(0.001)
+      #   Lwr[match("log_sigma_I",names(mod$par))] = log(0.001) 
+      #   Lwr[which(names(mod$par)=="log_S50_f")] = log(1)
+
         # if(is.numeric(newtonsteps)) opt <- TMBhelper::Optimize(obj=obj, upper=Upr, lower=Lwr, newtonsteps=newtonsteps, getsd=FALSE)
         # if(is.numeric(newtonsteps)==FALSE) opt <- TMBhelper::Optimize(obj=obj, upper=Upr, lower=Lwr, loopnum=3, getsd=FALSE)
         jnll <- obj$report()$jnll   
@@ -233,23 +263,23 @@ for(iter in 1:length(itervec)){
         }      
 
 
-        ## loop to try to get opt to run
-          for(i in 1:5){
-            if(all(is.na(opt)) | is.na(jnll) | all(is.na(opt_save[["final_gradient"]]))){
-              obj <- MakeADFun(data=TmbList[["Data"]], parameters=TmbList[["Parameters"]],
-                            random=TmbList[["Random"]], map=TmbList[["Map"]], 
-                            inner.control=list(maxit=1e3), hessian=FALSE, DLL="LIME", checkParameterOrder = FALSE)
-                opt <-  tryCatch(TMBhelper::fit_tmb(obj=obj, start= obj$env$last.par.best[-obj$env$random] + rnorm(length(obj$par),0,0.2), upper=Upr, lower=Lwr, newtonsteps=newtonsteps, getsd=FALSE), error=function(e) NA)
-                jnll <- obj$report()$jnll
-            }
-            if(all(is.na(opt))==FALSE & is.na(jnll)==FALSE){
-              opt[["final_gradient"]] = obj$gr( opt$par )       
-              opt_save <- opt
-              obj_save <- obj
-              jnll_save <- jnll
-              break
-            }
-          }
+        # ## loop to try to get opt to run
+        #   for(i in 1:5){
+        #     if(all(is.na(opt)) | is.na(jnll) | all(is.na(opt_save[["final_gradient"]]))){
+        #       obj <- MakeADFun(data=TmbList[["Data"]], parameters=TmbList[["Parameters"]],
+        #                     random=TmbList[["Random"]], map=TmbList[["Map"]], 
+        #                     inner.control=list(maxit=1e3), hessian=FALSE, DLL="LIME", checkParameterOrder = FALSE)
+        #         opt <-  tryCatch(TMBhelper::fit_tmb(obj=obj, start= obj$env$last.par.best[-obj$env$random] + rnorm(length(obj$par),0,0.2), upper=Upr, lower=Lwr, newtonsteps=newtonsteps, getsd=FALSE), error=function(e) NA)
+        #         jnll <- obj$report()$jnll
+        #     }
+        #     if(all(is.na(opt))==FALSE & is.na(jnll)==FALSE){
+        #       opt[["final_gradient"]] = obj$gr( opt$par )       
+        #       opt_save <- opt
+        #       obj_save <- obj
+        #       jnll_save <- jnll
+        #       break
+        #     }
+        #   }
           
 
         # ## if opt ran: 
