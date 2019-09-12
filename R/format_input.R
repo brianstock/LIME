@@ -128,6 +128,8 @@ format_input <- function(input,
                          "match_ages"=seq(min(ages), max(ages), by=1),
                          # "L_a"=L_a,
                          # "W_a"=W_a,
+                         "lw_pars"=c(lwa, lwb),
+                         "Mat_l"=Mat_l,
                          "M"=M,
                          "h"=h,
                          # "Mat_a"=Mat_a,
@@ -147,8 +149,6 @@ format_input <- function(input,
                          # "indexF_ft"=indexF_ft,
                          "est_totalF"=ifelse(est_totalF==TRUE,1,0),
                          "prop_f"=prop_f,
-                         "lw_pars"=c(lwa, lwb),
-                         "Mat_l"=Mat_l,
                          "dat_growth"=dat_growth,
                          "n_g"=dim(dat_growth)[1])   
         }
@@ -331,10 +331,10 @@ format_input <- function(input,
                         "log_sigma_I"=log(SigmaI),
                         "log_CV_L"=log(CVlen),
                         "log_theta"=log(rep(theta, Data$n_fl)),
-                        "Nu_input"=rdev_startval_t,
                         "log_vbk"=log(vbk),
                         "log_linf"=log(linf),
-                        "t0"=t0)
+                        "t0"=t0,
+                        "Nu_input"=rdev_startval_t)
 
         ## turn off parameter estimation 
         Map = list()
