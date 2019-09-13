@@ -162,8 +162,8 @@ if(all(is.null(Report))==FALSE){
 
   if(length(unique(df_all$Model))>1){
 	p <- ggplot(df_all) + 
-		geom_ribbon(data=df_all %>% filter(Type=="Observed"), aes(x=Length, ymin=0, ymax=Proportion, fill=Fleet), alpha=0.6) +
-		scale_fill_brewer(palette="Set1") +
+		geom_ribbon(data=df_all %>% filter(Type=="Observed"), aes(x=Length, ymin=0, ymax=Proportion), fill="grey70") +
+		# scale_fill_brewer(palette="Set1") +
 		xlab("Length bin (cm)") + ylab("Proportion")
 	if("Month" %in% colnames(LF_df)){
 		p <- p + facet_wrap(Year2~factor(Month), dir="v")
@@ -172,19 +172,19 @@ if(all(is.null(Report))==FALSE){
 		p <- p + facet_wrap(Year~., dir="v")
 	}
 	if(plot_fit==TRUE){
-		p <- p + geom_line(data=df_all %>% filter(Type=="Predicted"), aes(x=Length, y=Proportion, color=Model), lwd=1.2) +
-				scale_color_brewer(palette="Set1", direction=-1)
+		p <- p + geom_line(data=df_all %>% filter(Type=="Predicted"), aes(x=Length, y=Proportion), color="black", lwd=1.2)
+				# scale_color_brewer(palette="Set1", direction=-1)
 	}
   }
   if(length(unique(df_all$Fleet))>1){
   	p <- ggplot(df_all) + 
-		geom_ribbon(data=df_all %>% filter(Type=="Observed"), aes(x=Length, ymin=0, ymax=Proportion, fill=Fleet), alpha=0.6) +
-		scale_fill_brewer(palette="Set1") +
+		geom_ribbon(data=df_all %>% filter(Type=="Observed"), aes(x=Length, ymin=0, ymax=Proportion), fill="grey70") +
+		# scale_fill_brewer(palette="Set1") +
 		facet_wrap(Year~., ncol=5, dir="v")  +
 		xlab("Length bin (cm)") + ylab("Proportion")
 	if(plot_fit==TRUE){
-		p <- p + geom_line(data=df_all %>% filter(Type=="Predicted"), aes(x=Length, y=Proportion, color=Fleet), lwd=1.2) +
-				scale_color_brewer(palette="Set1")
+		p <- p + geom_line(data=df_all %>% filter(Type=="Predicted"), aes(x=Length, y=Proportion), color="black", lwd=1.2)
+				# scale_color_brewer(palette="Set1")
 	}
   }
 if(nf==1) p <- p + guides(fill=FALSE)
