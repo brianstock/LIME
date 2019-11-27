@@ -391,39 +391,27 @@ Type objective_function<Type>::operator() ()
 
   // ============ project forward in time =============  
   for(int t=1;t<n_t;t++){
-    // Recruitment
-    R_t(t) = ((4 * h * exp(beta) * SB_t(t-1)) / (SB0 * (1-h) + SB_t(t-1) * (5*h-1))) * exp(Nu_input(S_yrs(t)-1) - pow(sigma_R,2)/Type(2));
-    if(S_yrs(t) == S_yrs(t-1)) R_t(t) = 0;
     
     // Age-structured dynamics
-    for(int a=0;a<n_a;a++){
-      
-      // Population abundance
-      if((t>=1) & (a==0)){
-        N_ta(t,a) = R_t(t);
-      }
-      if((t>=1) & (a>=1) & (a<(n_a-1))){
-        N_ta(t,a) = N_ta(t-1,a-1) * exp(-M - F_ta(t-1,a-1)); 
-      }
-      if((t>=1) & (a==(n_a-1))){
-        N_ta(t,a) = (N_ta(t-1,a-1) * exp(-M - F_ta(t-1,a-1))) + (N_ta(t-1,a) * exp(-M - F_ta(t-1,a)));
-      }
+    for(int a=1; a<n_a-1; a++) N_ta(t,a) = N_ta(t-1,a-1) * exp(-M - F_ta(t-1,a-1));
+    N_ta(t,n_a-1) = (N_ta(t-1,n_a-2) * exp(-M - F_ta(t-1,n_a-2))) + (N_ta(t-1,n_a-1) * exp(-M - F_ta(t-1,n_a-1)));
 
-      // Spawning biomass
-      SB_ta(t,a) = N_ta(t,a)*Mat_a(a)*W_a(a);
+    for(int a=1; a<n_a; a++){
+      SB_ta(t,a) = N_ta(t,a)*Mat_a(a)*W_a(a); // Spawning biomass
+      SN_ta(t,a) = N_ta(t,a)*Mat_a(a); // Spawning numbers 
+      TB_ta(t,a) = N_ta(t,a)*W_a(a); // Total biomass
 
-      // Spawning numbers
-      SN_ta(t,a) = N_ta(t,a)*Mat_a(a);
-
-      // Total biomass
-      TB_ta(t,a) = N_ta(t,a)*W_a(a);
-      
-      //Annual values
-      if(a>0) N_t(t) += N_ta(t,a);
+      // Annual totals across ages - recruits (age-0) do not contribute
+      N_t(t) += N_ta(t,a);
       SB_t(t) += SB_ta(t,a);
       TB_t(t) += TB_ta(t,a);
       SN_t(t) += SN_ta(t,a);
     }
+
+    // Recruitment in year t is a function of SSB in year t, not t-1 (measure adults in year t, they produce age-0 right then)
+    R_t(t) = ((4 * h * exp(beta) * SB_t(t)) / (SB0 * (1-h) + SB_t(t) * (5*h-1))) * exp(Nu_input(S_yrs(t)) - pow(sigma_R,2)/Type(2));
+    if(S_yrs(t) == S_yrs(t-1)) R_t(t) = 0;
+    N_ta(t,0) = R_t(t);
   }
 
   //catch by fleet
